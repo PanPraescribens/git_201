@@ -1,5 +1,5 @@
 # Petit script pour ajouter la branche git dans le prompt
-Après avoir déposé les fichiers git-prompt.sh et git-completion.bash dans le répertoire ~ on peut ensuite les activer dans le `.bashrc`
+Après avoir déposé les fichiers `git-prompt.sh` et `git-completion.bash` dans le répertoire `~` on peut ensuite les copier les lignes suivantes dans le `.bashrc`
 
 ```bash
 # enable git-prompt options
@@ -8,7 +8,17 @@ Après avoir déposé les fichiers git-prompt.sh et git-completion.bash dans le 
 source ~/.git-completion.bash
 ```
 
-Puis on peut modifier le prompt pour afficher la branche active quand on est dans un repo git, et même colorer le nom si on veut indiquer une branche spéciale (ici main ou master, mais c'est facile à modifier !)
+Dans `.bashrc` vous avez également quelques lignes à remplacer pour afficher un prompt qui montrera désormais votre branche, si vous êtes dans un dépôt git.  
+
+Pour ce faire, il faut chercher et remplacer les lignes commençant à 
+```
+if [ "$color_prompt" = yes ]; then
+```
+et finissant à 
+```
+unset color_prompt force_color_prompt
+```
+et les remplacer par 
 
 ```bash
 # Modifié pour avoir le nom de la branche GIT en cours.  Dépend de l'existence de git-sh-prompt (ligne 4)
