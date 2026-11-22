@@ -59,10 +59,23 @@ td_check() {
   fi
 }
 
+# Affiche un .md minimaliste dans le terminal :
+# `code` en jaune gras (pour que personne ne tape les backticks !), titres en cyan.
+# Les couleurs seulement si sortie = terminal (sinon on affiche brut).
+_md_ansi() {
+  if [ -t 1 ]; then
+    local E=$'\033'
+    sed -e "s/^#\(.*\)/${E}[1;36m#\1${E}[0m/" \
+        -e "s/\`\([^\`]*)\`/${E}[1;33m\1${E}[0m/g" "$1"
+  else
+    cat "$1"
+  fi
+}
+
 # La liste de tâches de l'exercice courant (A_FAIRE.md, posé par td go)
 td_todo() {
   if [ -f "A_FAIRE.md" ]; then
-    cat "A_FAIRE.md"
+    _md_ansi "A_FAIRE.md"
     return
   fi
   local dirs=()
@@ -82,7 +95,7 @@ td_todo() {
       "")          echo "Choix invalide." ;;
       *)
         if [ -f "$TD_HOME/$c/A_FAIRE.md" ]; then
-          cat "$TD_HOME/$c/A_FAIRE.md"
+          _md_ansi "$TD_HOME/$c/A_FAIRE.md"
         else
           echo "Pas de liste de tâches pour $c."
         fi
@@ -121,7 +134,7 @@ _td_open() {
   fi
   cd "$d" || return 1
   td_check
-  [ -f "A_FAIRE.md" ] && { echo; echo "— Que dois-je faire ? —"; cat "A_FAIRE.md"; }
+  [ -f "A_FAIRE.md" ] && { echo; echo "— Que dois-je faire ? —"; _md_ansi "A_FAIRE.md"; }
 }
 
 # Va dans un exercice — par NUMÉRO dans la whitelist uniquement.
