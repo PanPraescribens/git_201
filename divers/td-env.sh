@@ -25,6 +25,11 @@ echo "=== Installation de l'environnement TD Git 201 ==="
 # 1. Copie des outils (indépendante du clone : peut être effacé/recloné sans casse)
 mkdir -p "$DEST"
 cp -f "$SRC/td.sh" "$DEST/td.sh"
+mkdir -p "$DEST/taches"
+if [ -d "$SRC/taches" ]; then
+  cp -f "$SRC/taches/"*.md "$DEST/taches/"
+  echo "✓ $(ls "$SRC/taches/" | wc -l) liste(s) de tâches installée(s)"
+fi
 if [ -f "$SRC/git-prompt.sh" ]; then
   cp -f "$SRC/git-prompt.sh" "$DEST/git-prompt.sh"
 elif command -v git >/dev/null && [ -f "$(git --exec-path)/git-prompt.sh" ]; then

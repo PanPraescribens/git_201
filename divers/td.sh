@@ -10,10 +10,14 @@
 # cours : on évite ainsi les repos-dans-le-repo.
 TD_HOME="${TD_HOME:-$HOME/td-git201}"
 
+# Où l'installateur a posé les outils (listes de tâches, prompt, etc.)
+TD_SHARE="${TD_SHARE:-$HOME/.local/share/td-git201}"
+
 _td_usage() {
   cat << 'USAGE'
 td                 — menu interactif (liste vos exercices)
 td go <dossier>    — va dans un exercice, le crée si besoin (ex: td go td01ex01)
+td todo            — « que dois-je faire ? » : les tâches de l'exercice courant
 td check           — où suis-je ? (dépôt git ? branche ? modifs en cours ?)
 td help            — cette aide
 
@@ -55,6 +59,39 @@ td_check() {
   fi
 }
 
+# La liste de tâches de l'exercice courant (A_FAIRE.md, posé par td go)
+td_todo() {
+  if [ -f "A_FAIRE.md" ]; then
+    cat "A_FAIRE.md"
+    return
+  fi
+  local dirs=()
+  while IFS= read -r d; do dirs+=("$d"); done < <(_td_list)
+  if [ ${#dirs[@]} -eq 0 ]; then
+    echo "Aucun exercice. Créez-en un avec : td go td01ex01"
+    return
+  fi
+  echo "De quel exercice voulez-vous les tâches ?"
+  PS3="Votre choix (q = annuler) : "
+  select c in "${dirs[@]}" "Annuler"; do
+    case "$REPLY" in
+      q|Q) return ;;
+    esac
+    case "$c" in
+      "Annuler")   return ;;
+      "")          echo "Choix invalide." ;;
+      *)
+        if [ -f "$TD_HOME/$c/A_FAIRE.md" ]; then
+          cat "$TD_HOME/$c/A_FAIRE.md"
+        else
+          echo "Pas de liste de tâches pour $c."
+        fi
+        return
+        ;;
+    esac
+  done
+}
+
 # Va dans un exercice (le crée si besoin). Le cd fonctionne car td est une fonction.
 td_go() {
   local ex="${1:-}"
@@ -65,9 +102,15 @@ td_go() {
   local d="$TD_HOME/$ex"
   if [ ! -d "$d" ]; then
     mkdir -p "$d" && echo "Exercice créé : $d"
+    # On y dépose la liste de tâches si on la connaît
+    if [ -f "$TD_SHARE/taches/$ex.md" ]; then
+      cp -f "$TD_SHARE/taches/$ex.md" "$d/A_FAIRE.md"
+      echo "Liste de tâches déposée : A_FAIRE.md (td todo pour la revoir)"
+    fi
   fi
   cd "$d" || return 1
   td_check
+  [ -f "A_FAIRE.md" ] && { echo; echo "— Que dois-je faire ? —"; cat "A_FAIRE.md"; }
 }
 
 # Menu interactif
@@ -80,13 +123,16 @@ td_menu() {
     echo "Créez le premier avec : td go td01ex01"
     return
   fi
-  PS3="Votre choix : "
-  select c in "${dirs[@]}" "Où suis-je ?" "Quitter"; do
+  PS3="Votre choix (q = quitter) : "
+  select c in "${dirs[@]}" "Que dois-je faire ?" "Où suis-je ?"; do
+    case "$REPLY" in
+      q|Q) echo "Au revoir !"; break ;;
+    esac
     case "$c" in
-      "Quitter")    break ;;
-      "Où suis-je ?") td_check ;;
-      "")           echo "Choix invalide." ;;
-      *)            cd "$TD_HOME/$c" && td_check; break ;;
+      "Où suis-je ?")        td_check ;;
+      "Que dois-je faire ?") td_todo ;;
+      "")                    [ "$REPLY" = q ] || [ "$REPLY" = Q ] || echo "Choix invalide." ;;
+      *)                     cd "$TD_HOME/$c" && td_check; break ;;
     esac
   done
 }
@@ -95,6 +141,7 @@ td() {
   case "${1:-}" in
     "")             td_menu ;;
     go)             shift; td_go "$@" ;;
+    todo)           td_todo ;;
     check|status)   td_check ;;
     help|-h|--help) _td_usage ;;
     *)
