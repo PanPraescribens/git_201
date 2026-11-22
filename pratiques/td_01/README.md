@@ -13,8 +13,24 @@ en arrière (`restore --staged`, `rm --cached`, `commit --amend`, `reset --hard`
 
 ## Prérequis
 
-- `git` installé et configuré (`git config --global user.name` / `user.email`).
-- Un terminal bash (Linux, macOS, ou WSL sous Windows).
+- `git` installé, **et identifié** (`git config --global user.name` / `user.email`) —
+  sans ça, aucun commit ne fonctionnera.
+- Un terminal bash (Linux, macOS, ou Git Bash / WSL sous Windows).
+
+## Installation de l'environnement (recommandé)
+
+Depuis le clone du cours :
+
+```bash
+cd divers && bash td-env.sh
+```
+
+puis **ouvrez un nouveau terminal**. Vous disposez alors de :
+
+- la commande `td` (menu interactif : `td`, `td go td01ex01`, `td check`),
+- un prompt qui affiche la branche et l'état du dépôt,
+- les exercices dans `~/td-git201/` — **jamais dans le clone du cours**
+  (on évite ainsi le repo-dans-le-repo).
 
 ## Déroulé
 

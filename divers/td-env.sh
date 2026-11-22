@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# td-env.sh — installe l'environnement TD Git 201
+#
+# À lancer UNE FOIS depuis le clone du cours :
+#     cd divers && bash td-env.sh
+#
+# Ce que fait l'installateur :
+#   1. copie les outils (td.sh, git-prompt.sh, complétion) dans ~/.local/share/td-git201
+#   2. git config init.defaultBranch main   (plus de warnings "master")
+#   3. ajoute un bloc idempotent dans ~/.bashrc : commande `td` + prompt avec branche
+#   4. sous Git Bash : crée ~/.bash_profile si absent (sinon .bashrc n'est pas lu)
+#
+# Réinstallable sans risque : il ne modifie ~/.bashrc qu'entre ses marqueurs.
+
+set -e
+
+SRC="$(cd "$(dirname "$0")" && pwd)"
+DEST="$HOME/.local/share/td-git201"
+BASHRC="$HOME/.bashrc"
+MARK_START="# >>> td-git201 >>>"
+MARK_END="# <<< td-git201 <<<"
+
+echo "=== Installation de l'environnement TD Git 201 ==="
+
+# 1. Copie des outils (indépendante du clone : peut être effacé/recloné sans casse)
+mkdir -p "$DEST"
+cp -f "$SRC/td.sh" "$DEST/td.sh"
+if [ -f "$SRC/git-prompt.sh" ]; then
+  cp -f "$SRC/git-prompt.sh" "$DEST/git-prompt.sh"
+elif command -v git >/dev/null && [ -f "$(git --exec-path)/git-prompt.sh" ]; then
+  cp -f "$(git --exec-path)/git-prompt.sh" "$DEST/git-prompt.sh"
+else
+  echo "⚠️  git-prompt.sh introuvable — le prompt n'affichera pas la branche" >&2
+fi
+if [ -f "$SRC/.git-completion.bash" ]; then
+  cp -f "$SRC/.git-completion.bash" "$DEST/git-completion.bash"
+fi
+
+# 2. Config git : les nouveaux repos démarrent sur main
+git config --global init.defaultBranch main && echo "✓ init.defaultBranch = main"
+
+# 2bis. Erreur étudiante n°1 : git non identifié (impossible de committer)
+if ! git config --get user.name >/dev/null || ! git config --get user.email >/dev/null; then
+  echo "⚠️  Votre identité git n'est pas configurée : aucun commit ne fonctionnera !"
+  echo "   Corrigez avec (mettez VOTRE nom et email) :"
+  echo "     git config --global user.name  \"Prénom Nom\""
+  echo "     git config --global user.email \"prenom.nom@example.fr\""
+  echo
+fi
+
+# 3. Bloc ~/.bashrc (idempotent : on retire l'ancien bloc avant de réécrire)
+[ -f "$BASHRC" ] && cp -f "$BASHRC" "$BASHRC.bak-td"
+if [ -f "$BASHRC" ] && grep -qF "$MARK_START" "$BASHRC"; then
+  sed -i "/$MARK_START/,/$MARK_END/d" "$BASHRC"
+fi
+cat >> "$BASHRC" << BLOC
+
+$MARK_START
+export TD_HOME="\${TD_HOME:-\$HOME/td-git201}"
+[ -f "$DEST/td.sh" ] && source "$DEST/td.sh"
+[ -f "$DEST/git-prompt.sh" ] && source "$DEST/git-prompt.sh"
+GIT_PS1_SHOWDIRTYSTATE=1
+GIT_PS1_SHOWSTASH=1
+case "\$PS1" in
+  *__git_ps1*) ;;  # Git Bash : le prompt affiche déjà la branche, on ne touche pas
+  *) PS1='\[\e[01;32m\]\u@\h\[\e[00m\]:\[\e[01;34m\]\w\[\e[00m\]\$(__git_ps1 " (%s)")\\\$ ' ;;
+esac
+$MARK_END
+BLOC
+echo "✓ bloc ajouté à $BASHRC (sauvegarde : $BASHRC.bak-td)"
+
+# 4. Git Bash : .bashrc n'est lu que si .bash_profile l'inclut
+if [ ! -f "$HOME/.bash_profile" ]; then
+  cat > "$HOME/.bash_profile" << 'BP'
+# créé par td-env.sh : sans ce fichier, Git Bash ignore ~/.bashrc
+[ -f ~/.bashrc ] && . ~/.bashrc
+BP
+  echo "✓ ~/.bash_profile créé (requis par Git Bash)"
+fi
+
+echo
+echo "✅ Environnement installé dans $DEST"
+echo "   Ouvrez un nouveau terminal, ou tapez :  source ~/.bashrc"
+echo "   Ensuite :  td help"

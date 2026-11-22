@@ -1,0 +1,8 @@
+# Fichiers temporaires Office
+~$*
+
+# Config locale d'éditeur
+.vscode/**
+
+# Workspace exercices des étudiants — jamais dans le clone du cours (voir divers/td.sh)
+td[0-9]*ex*/
