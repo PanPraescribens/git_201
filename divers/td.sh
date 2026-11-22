@@ -229,11 +229,27 @@ _td_open() {
     # Copie du repo source, si la liste de tâches en déclare un
     src=$(_td_seed "$ex")
     if [ -n "$src" ]; then
+      local want num="" k i
       if [ -d "$TD_HOME/$src" ]; then
+        # Prérequis : l'exercice source doit être terminé (tag exNN)
+        want="ex${src##*_}"
+        if git -C "$TD_HOME/$src" rev-parse -q --verify "refs/tags/$want" >/dev/null 2>&1; then
+          echo "✓ Prérequis : $src terminé (tag $want)"
+        else
+          echo "⚠️  Prérequis douteux : $src existe mais pas de tag $want —"
+          echo "   l'exercice précédent ne semble pas terminé."
+          echo "   (Vous pouvez continuer, mais l'énoncé part du repo complet.)"
+        fi
         cp -R "$TD_HOME/$src/." "$d/" && echo "✓ Repo copié depuis $src (y compris .git)"
       else
-        echo "⚠️  L'exercice $src n'existe pas encore — $ex démarre à vide."
-        echo "   (l'énoncé suppose le repo de $src : faites d'abord td go, ou recopiez-le)"
+        i=1
+        while IFS= read -r k; do
+          [ "$k" = "$src" ] && { num=$i; break; }
+          i=$((i+1))
+        done < <(_td_known)
+        echo "⚠️  Prérequis manquant : l'exercice $src n'existe pas encore."
+        [ -n "$num" ] && echo "   Commencez par : td go $num"
+        echo "   (td go va quand même créer $ex, à vide.)"
       fi
     fi
     # On y dépose la liste de tâches (APRÈS la copie : elle écrase celle de la source),
