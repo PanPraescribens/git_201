@@ -16,7 +16,7 @@ TD_SHARE="${TD_SHARE:-$HOME/.local/share/td-git201}"
 _td_usage() {
   cat << 'USAGE'
 td                 — menu interactif (liste vos exercices)
-td go <dossier>    — va dans un exercice, le crée si besoin (ex: td go td01ex01)
+td go <numéro>     — va dans l'exercice n°X de la whitelist (td go = liste)
 td todo            — « que dois-je faire ? » : les tâches de l'exercice courant
 td check           — où suis-je ? (dépôt git ? branche ? modifs en cours ?)
 td help            — cette aide
@@ -55,7 +55,7 @@ td_check() {
     esac
   else
     echo "Pas dans un dépôt git. (Répertoire courant : $PWD)"
-    echo "Pour commencer un exercice : td go td01ex01"
+    echo "Pour commencer un exercice : td go 1"
   fi
 }
 
@@ -66,9 +66,9 @@ td_todo() {
     return
   fi
   local dirs=()
-  while IFS= read -r d; do dirs+=("$d"); done < <(_td_list)
+  while IFS= read -r d; do dirs+=("$d"); done < <(_td_known)
   if [ ${#dirs[@]} -eq 0 ]; then
-    echo "Aucun exercice. Créez-en un avec : td go td01ex01"
+    echo "Aucun exercice. Créez-en un avec : td go 1"
     return
   fi
   echo "De quel exercice voulez-vous les tâches ?"
@@ -92,14 +92,25 @@ td_todo() {
   done
 }
 
-# Va dans un exercice (le crée si besoin). Le cd fonctionne car td est une fonction.
-td_go() {
-  local ex="${1:-}"
-  if [ -z "$ex" ]; then
-    echo "usage : td go td01ex01"
-    return 1
-  fi
-  local d="$TD_HOME/$ex"
+# Liste des exercices connus : ceux qui ont une liste de tâches installée,
+# plus ceux déjà créés dans le workspace. C'est LA whitelist de `td go`.
+_td_known() {
+  {
+    local f b d
+    for f in "$TD_SHARE"/taches/*.md; do
+      [ -f "$f" ] && b=$(basename "$f" .md) && echo "$b"
+    done
+    for d in "$TD_HOME"/*/; do
+      [ -d "$d" ] || continue
+      b=$(basename "$d")
+      case "$b" in td[0-9]*ex[0-9]*) echo "$b" ;; esac
+    done
+  } | sort -u
+}
+
+# Ouvre un exercice par son nom : le crée si besoin, y entre, fait le point.
+_td_open() {
+  local ex="$1" d="$TD_HOME/$ex"
   if [ ! -d "$d" ]; then
     mkdir -p "$d" && echo "Exercice créé : $d"
     # On y dépose la liste de tâches si on la connaît
@@ -113,6 +124,35 @@ td_go() {
   [ -f "A_FAIRE.md" ] && { echo; echo "— Que dois-je faire ? —"; cat "A_FAIRE.md"; }
 }
 
+# Va dans un exercice — par NUMÉRO dans la whitelist uniquement.
+td_go() {
+  local n="${1:-}" known=() k i=1 ex
+  while IFS= read -r k; do known+=("$k"); done < <(_td_known)
+  if [ ${#known[@]} -eq 0 ]; then
+    echo "Aucun exercice connu. Installez l'environnement (divers/td-env.sh)."
+    return 1
+  fi
+  if [ -z "$n" ]; then
+    echo "Exercices disponibles :"
+    for k in "${known[@]}"; do echo "  $i. $k"; i=$((i+1)); done
+    echo "Usage : td go <numéro>"
+    return 1
+  fi
+  case "$n" in
+    ''|*[!0-9]*)
+      echo "Refusé : « $n » n'est pas un numéro."
+      echo "td go seul affiche la liste des exercices."
+      return 1
+      ;;
+  esac
+  ex="${known[$((n-1))]:-}"
+  if [ -z "$ex" ]; then
+    echo "Pas d'exercice n°$n. td go seul affiche la liste."
+    return 1
+  fi
+  _td_open "$ex"
+}
+
 # Menu interactif
 td_menu() {
   echo "=== TD Git 201 — workspace : $TD_HOME ==="
@@ -120,7 +160,7 @@ td_menu() {
   while IFS= read -r d; do dirs+=("$d"); done < <(_td_list)
   if [ ${#dirs[@]} -eq 0 ]; then
     echo "Aucun exercice pour l'instant."
-    echo "Créez le premier avec : td go td01ex01"
+    echo "Créez le premier avec : td go 1"
     return
   fi
   PS3="Votre choix (q = quitter) : "
@@ -132,7 +172,7 @@ td_menu() {
       "Où suis-je ?")        td_check ;;
       "Que dois-je faire ?") td_todo ;;
       "")                    [ "$REPLY" = q ] || [ "$REPLY" = Q ] || echo "Choix invalide." ;;
-      *)                     cd "$TD_HOME/$c" && td_check; break ;;
+      *)                     _td_open "$c"; break ;;
     esac
   done
 }

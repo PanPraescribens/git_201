@@ -27,7 +27,7 @@ cd divers && bash td-env.sh
 
 puis **ouvrez un nouveau terminal**. Vous disposez alors de :
 
-- la commande `td` (menu interactif : `td`, `td go td01ex01`, `td todo` —
+- la commande `td` (menu interactif : `td`, `td go 1`, `td todo` —
   « que dois-je faire ? » —, `td check`),
 - un prompt qui affiche la branche et l'état du dépôt,
 - les exercices dans `~/td-git201/` — **jamais dans le clone du cours**
