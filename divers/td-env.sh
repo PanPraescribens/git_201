@@ -28,6 +28,7 @@ cp -f "$SRC/td.sh" "$DEST/td.sh"
 mkdir -p "$DEST/taches"
 if [ -d "$SRC/taches" ]; then
   cp -f "$SRC/taches/"*.md "$DEST/taches/"
+  cp -f "$SRC/taches/"*.sh "$DEST/taches/" 2>/dev/null || true
   echo "✓ $(ls "$SRC/taches/" | wc -l) liste(s) de tâches installée(s)"
 fi
 if [ -f "$SRC/git-prompt.sh" ]; then

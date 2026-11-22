@@ -215,6 +215,7 @@ _td_known() {
 
 # Exercice à copier comme point de départ ? Déclaré dans la liste de tâches :
 # une ligne « <!-- source: 01_01 --> » = td go copie le repo 01_01 dans le nouvel exercice.
+# (Conservé pour compat, mais la méthode préférée est un script de mise en place.)
 _td_seed() {
   local ex="$1" f="$TD_SHARE/taches/$ex.md"
   [ -f "$f" ] || return 0
@@ -223,40 +224,23 @@ _td_seed() {
 
 # Ouvre un exercice par son nom : le crée si besoin, y entre, fait le point.
 _td_open() {
-  local ex="$1" d="$TD_HOME/$ex" src
+  local ex="$1" d="$TD_HOME/$ex" setup
   if [ ! -d "$d" ]; then
     mkdir -p "$d" && echo "Exercice créé : $d"
-    # Copie du repo source, si la liste de tâches en déclare un
-    src=$(_td_seed "$ex")
-    if [ -n "$src" ]; then
-      local want num="" k i
-      if [ -d "$TD_HOME/$src" ]; then
-        # Prérequis : l'exercice source doit être terminé (tag exNN)
-        want="ex${src##*_}"
-        if git -C "$TD_HOME/$src" rev-parse -q --verify "refs/tags/$want" >/dev/null 2>&1; then
-          echo "✓ Prérequis : $src terminé (tag $want)"
-        else
-          echo "⚠️  Prérequis douteux : $src existe mais pas de tag $want —"
-          echo "   l'exercice précédent ne semble pas terminé."
-          echo "   (Vous pouvez continuer, mais l'énoncé part du repo complet.)"
-        fi
-        cp -R "$TD_HOME/$src/." "$d/" && echo "✓ Repo copié depuis $src (y compris .git)"
-      else
-        i=1
-        while IFS= read -r k; do
-          [ "$k" = "$src" ] && { num=$i; break; }
-          i=$((i+1))
-        done < <(_td_known)
-        echo "⚠️  Prérequis manquant : l'exercice $src n'existe pas encore."
-        [ -n "$num" ] && echo "   Commencez par : td go $num"
-        echo "   (td go va quand même créer $ex, à vide.)"
-      fi
-    fi
-    # On y dépose la liste de tâches (APRÈS la copie : elle écrase celle de la source),
-    # sans la ligne de métadonnées source
+    # Liste de tâches d'abord : le script de mise en place peut s'en servir (git add A_FAIRE.md)
     if [ -f "$TD_SHARE/taches/$ex.md" ]; then
       grep -v '^<!-- source:' "$TD_SHARE/taches/$ex.md" > "$d/A_FAIRE.md"
       echo "Liste de tâches déposée : A_FAIRE.md (td todo pour la revoir)"
+    fi
+    # État de départ de l'exercice, préparé par son script dédié (s'il existe)
+    setup="$TD_SHARE/taches/$ex.sh"
+    if [ -f "$setup" ]; then
+      if (cd "$d" && bash "$setup"); then
+        echo "✓ Repo préparé dans l'état attendu par l'exercice"
+      else
+        echo "⚠️  Le script de préparation de $ex a échoué — repartez d'un dossier vide :"
+        echo "   rm -rf \"$d\" puis relancez td go."
+      fi
     fi
   fi
   cd "$d" || return 1
