@@ -96,14 +96,16 @@ td_check() {
 # Affiche un .md minimaliste dans le terminal :
 # `code` en jaune gras (pour que personne ne tape les backticks !), titres en cyan.
 # Les couleurs seulement si sortie = terminal (sinon on affiche brut).
+# La ligne de métadonnées « <!-- source: ... » (exercise à copier) est masquée.
 _md_ansi() {
   if [ -t 1 ]; then
     local E=$'\033'
-    sed -e "s/^#\(.*\)/${E}[1;36m#\1${E}[0m/" \
+    sed -e '/^<!-- source:/d' \
+        -e "s/^#\(.*\)/${E}[1;36m#\1${E}[0m/" \
         -e "s#\(https://[^ ]*\)#${E}[36m\1${E}[0m#g" \
         -e "s/\`\([^\`]*\)\`/${E}[1;33m\1${E}[0m/g" "$1"
   else
-    cat "$1"
+    grep -v '^<!-- source:' "$1"
   fi
 }
 
@@ -211,20 +213,41 @@ _td_known() {
   } | sort -u
 }
 
+# Exercice à copier comme point de départ ? Déclaré dans la liste de tâches :
+# une ligne « <!-- source: 01_01 --> » = td go copie le repo 01_01 dans le nouvel exercice.
+_td_seed() {
+  local ex="$1" f="$TD_SHARE/taches/$ex.md"
+  [ -f "$f" ] || return 0
+  sed -n 's/^<!-- source: *\([^ >]*\).*$/\1/p' "$f" | head -1
+}
+
 # Ouvre un exercice par son nom : le crée si besoin, y entre, fait le point.
 _td_open() {
-  local ex="$1" d="$TD_HOME/$ex"
+  local ex="$1" d="$TD_HOME/$ex" src
   if [ ! -d "$d" ]; then
     mkdir -p "$d" && echo "Exercice créé : $d"
-    # On y dépose la liste de tâches si on la connaît
+    # Copie du repo source, si la liste de tâches en déclare un
+    src=$(_td_seed "$ex")
+    if [ -n "$src" ]; then
+      if [ -d "$TD_HOME/$src" ]; then
+        cp -R "$TD_HOME/$src/." "$d/" && echo "✓ Repo copié depuis $src (y compris .git)"
+      else
+        echo "⚠️  L'exercice $src n'existe pas encore — $ex démarre à vide."
+        echo "   (l'énoncé suppose le repo de $src : faites d'abord td go, ou recopiez-le)"
+      fi
+    fi
+    # On y dépose la liste de tâches (APRÈS la copie : elle écrase celle de la source),
+    # sans la ligne de métadonnées source
     if [ -f "$TD_SHARE/taches/$ex.md" ]; then
-      cp -f "$TD_SHARE/taches/$ex.md" "$d/A_FAIRE.md"
+      grep -v '^<!-- source:' "$TD_SHARE/taches/$ex.md" > "$d/A_FAIRE.md"
       echo "Liste de tâches déposée : A_FAIRE.md (td todo pour la revoir)"
     fi
   fi
   cd "$d" || return 1
   td_check
-  [ -f "A_FAIRE.md" ] && { echo; echo "— Que dois-je faire ? —"; _md_ansi "A_FAIRE.md"; }
+  local tf
+  tf=$(_td_taskfile "$ex")
+  [ -n "$tf" ] && { echo; echo "— Que dois-je faire ? —"; _md_ansi "$tf"; }
 }
 
 # Va dans un exercice — par NUMÉRO dans la whitelist uniquement.
