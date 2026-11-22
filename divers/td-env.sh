@@ -53,6 +53,13 @@ if ! git config --get user.name >/dev/null || ! git config --get user.email >/de
   echo
 fi
 
+# 2ter. A_FAIRE.md ne doit jamais polluer les repos des exercices
+# (~/.config/git/ignore est un fichier d'exclusion GLOBAL que git lit d'office)
+mkdir -p "$HOME/.config/git"
+grep -qxF "A_FAIRE.md" "$HOME/.config/git/ignore" 2>/dev/null || \
+  echo "A_FAIRE.md" >> "$HOME/.config/git/ignore"
+echo "✓ A_FAIRE.md exclu globalement ($HOME/.config/git/ignore)"
+
 # 3. Bloc ~/.bashrc (idempotent : on retire l'ancien bloc avant de réécrire)
 [ -f "$BASHRC" ] && cp -f "$BASHRC" "$BASHRC.bak-td"
 if [ -f "$BASHRC" ] && grep -qF "$MARK_START" "$BASHRC"; then
