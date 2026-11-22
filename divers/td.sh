@@ -50,9 +50,28 @@ _td_pretty() {
   esac
 }
 
-# Où suis-je ? Dépôt, branche, modifs en attente, et garde-fou anti repo-dans-repo
+# Où suis-je ? Dépôt, branche, modifs en attente, et garde-fous :
+# - anti repo-dans-repo (clone du cours)
+# - anti exercice-imbriqué (piège du mkdir en double)
 td_check() {
-  local top branch n
+  local top branch n leaf rel depth
+  # Piège du mkdir en double : un exercice imbriqué dans un autre
+  case "$PWD" in
+    "$TD_HOME"/*)
+      rel="${PWD#"$TD_HOME"/}"
+      depth=$(printf '%s' "$rel" | awk -F/ '{print NF}')
+      if [ "$depth" -ge 2 ]; then
+        leaf="${rel##*/}"
+        case "$leaf" in
+          td[0-9]*ex[0-9]*|[0-9][0-9]_[0-9][0-9])
+            echo "⚠️  Exercice imbriqué détecté : $PWD"
+            echo "   (piège classique : mkdir dans le dossier de l'exercice)."
+            echo "   Remontez d'un niveau : cd .."
+            ;;
+        esac
+      fi
+      ;;
+  esac
   if top=$(git rev-parse --show-toplevel 2>/dev/null); then
     echo "Dépôt git       : $top"
     branch=$(git branch --show-current 2>/dev/null)
