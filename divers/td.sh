@@ -20,7 +20,7 @@ _td_usage() {
   cat << 'USAGE'
 td                 — menu interactif (liste vos exercices)
 td go <numéro>     — va dans l'exercice n°X de la whitelist (td go = liste)
-td todo            — « que dois-je faire ? » : les tâches de l'exercice courant
+td todo [numéro]   — « que dois-je faire ? » (numéro = un autre exercice)
 td check           — où suis-je ? (dépôt git ? branche ? modifs en cours ?)
 td help            — cette aide
 
@@ -54,21 +54,20 @@ _td_pretty() {
 # - anti repo-dans-repo (clone du cours)
 # - anti exercice-imbriqué (piège du mkdir en double)
 td_check() {
-  local top branch n leaf rel depth
-  # Piège du mkdir en double : un exercice imbriqué dans un autre
+  local top branch n rel depth
+  # Étes-vous au bon endroit ? Racine d'un exercice connu = confirmation positive
   case "$PWD" in
     "$TD_HOME"/*)
       rel="${PWD#"$TD_HOME"/}"
       depth=$(printf '%s' "$rel" | awk -F/ '{print NF}')
-      if [ "$depth" -ge 2 ]; then
-        leaf="${rel##*/}"
-        case "$leaf" in
-          td[0-9]*ex[0-9]*|[0-9][0-9]_[0-9][0-9])
-            echo "⚠️  Exercice imbriqué détecté : $PWD"
-            echo "   (piège classique : mkdir dans le dossier de l'exercice)."
-            echo "   Remontez d'un niveau : cd .."
-            ;;
-        esac
+      if [ "$depth" -eq 1 ] && _td_is_exercise "$rel"; then
+        echo "✓ Vous êtes dans le dossier de l'exercice : $(_td_pretty "$rel")"
+        echo "  td todo       — la liste de tâches de cet exercice"
+        echo "  (git init si ce n'est pas déjà fait, puis suivez le todo !)"
+      elif [ "$depth" -ge 2 ] && _td_is_exercise "${rel##*/}"; then
+        echo "⚠️  Exercice imbriqué détecté : $PWD"
+        echo "   (piège classique : mkdir dans le dossier de l'exercice)."
+        echo "   Remontez d'un niveau : cd .."
       fi
       ;;
   esac
@@ -108,8 +107,37 @@ _md_ansi() {
   fi
 }
 
+# Test : ce nom est-il un dossier d'exercice ?
+_td_is_exercise() {
+  case "$1" in
+    td[0-9]*ex[0-9]*|[0-9][0-9]_[0-9][0-9]) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # La liste de tâches de l'exercice courant (A_FAIRE.md, posé par td go)
+# td todo [numéro] : celle d'un autre exercice (même pas encore créé)
 td_todo() {
+  if [ -n "${1:-}" ]; then
+    local n="$1" known=() k i=1 ex
+    while IFS= read -r k; do known+=("$k"); done < <(_td_known)
+    case "$n" in
+      ''|*[!0-9]*) echo "Refusé : « $n » n'est pas un numéro." ; return 1 ;;
+    esac
+    ex="${known[$((n-1))]:-}"
+    if [ -z "$ex" ]; then
+      echo "Pas d'exercice n°$n. td todo seul = exercice courant."
+      return 1
+    fi
+    if [ -f "$TD_HOME/$ex/A_FAIRE.md" ]; then
+      _md_ansi "$TD_HOME/$ex/A_FAIRE.md"
+    elif [ -f "$TD_SHARE/taches/$ex.md" ]; then
+      _md_ansi "$TD_SHARE/taches/$ex.md"
+    else
+      echo "Pas de liste de tâches pour $ex."
+    fi
+    return
+  fi
   if [ -f "A_FAIRE.md" ]; then
     _md_ansi "A_FAIRE.md"
     return
@@ -230,7 +258,7 @@ td() {
   case "${1:-}" in
     "") clear; td_menu ;;
     go)             shift; td_go "$@" ;;
-    todo)           td_todo ;;
+    todo)           shift; td_todo "$@" ;;
     check|status)   td_check ;;
     help|-h|--help) _td_usage ;;
     *)
