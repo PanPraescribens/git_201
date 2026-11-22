@@ -115,11 +115,22 @@ _td_is_exercise() {
   esac
 }
 
-# La liste de tâches de l'exercice courant (A_FAIRE.md, posé par td go)
-# td todo [numéro] : celle d'un autre exercice (même pas encore créé)
+# La liste de tâches FAITE AUTORITÉ pour un exercice : d'abord la version
+# installée (TD_SHARE, mise à jour par td-env.sh), sinon l'A_FAIRE local —
+# car une copie d'exercice traîne l'A_FAIRE de l'exercice PRÉCÉDENT.
+_td_taskfile() {
+  local ex="$1"
+  if [ -f "$TD_SHARE/taches/$ex.md" ]; then
+    echo "$TD_SHARE/taches/$ex.md"
+  elif [ -f "$TD_HOME/$ex/A_FAIRE.md" ]; then
+    echo "$TD_HOME/$ex/A_FAIRE.md"
+  fi
+}
+
+# La liste de tâches de l'exercice courant (ou d'un autre : td todo <numéro>)
 td_todo() {
   if [ -n "${1:-}" ]; then
-    local n="$1" known=() k i=1 ex
+    local n="$1" known=() k i=1 ex f
     while IFS= read -r k; do known+=("$k"); done < <(_td_known)
     case "$n" in
       ''|*[!0-9]*) echo "Refusé : « $n » n'est pas un numéro." ; return 1 ;;
@@ -129,14 +140,29 @@ td_todo() {
       echo "Pas d'exercice n°$n. td todo seul = exercice courant."
       return 1
     fi
-    if [ -f "$TD_HOME/$ex/A_FAIRE.md" ]; then
-      _md_ansi "$TD_HOME/$ex/A_FAIRE.md"
-    elif [ -f "$TD_SHARE/taches/$ex.md" ]; then
-      _md_ansi "$TD_SHARE/taches/$ex.md"
+    f=$(_td_taskfile "$ex")
+    if [ -n "$f" ]; then
+      _md_ansi "$f"
     else
       echo "Pas de liste de tâches pour $ex."
     fi
     return
+  fi
+  # Exercice courant = racine d'un exercice dans le workspace ?
+  local rel cur=""
+  case "$PWD" in
+    "$TD_HOME"/*)
+      rel="${PWD#"$TD_HOME"/}"
+      case "$rel" in */*) ;; *) _td_is_exercise "$rel" && cur="$rel" ;; esac
+      ;;
+  esac
+  if [ -n "$cur" ]; then
+    local f
+    f=$(_td_taskfile "$cur")
+    if [ -n "$f" ]; then
+      _md_ansi "$f"
+      return
+    fi
   fi
   if [ -f "A_FAIRE.md" ]; then
     _md_ansi "A_FAIRE.md"
@@ -158,13 +184,13 @@ td_todo() {
       "Annuler")   return ;;
       "")          echo "Choix invalide." ;;
       *)
-        if [ -f "$TD_HOME/$c/A_FAIRE.md" ]; then
-          _md_ansi "$TD_HOME/$c/A_FAIRE.md"
-        else
-          echo "Pas de liste de tâches pour $c."
-        fi
-        return
-        ;;
+    if [ -f "$TD_SHARE/taches/$c.md" ]; then
+      _md_ansi "$TD_SHARE/taches/$c.md"
+    else
+      echo "Pas de liste de tâches pour $c."
+    fi
+    return
+    ;;
     esac
   done
 }
