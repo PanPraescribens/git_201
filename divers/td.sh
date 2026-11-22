@@ -179,7 +179,7 @@ td_menu() {
 
 td() {
   case "${1:-}" in
-    "")             td_menu ;;
+    "") clear; td_menu ;;
     go)             shift; td_go "$@" ;;
     todo)           td_todo ;;
     check|status)   td_check ;;
