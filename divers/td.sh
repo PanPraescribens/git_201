@@ -37,6 +37,19 @@ _td_list() {
   done
 }
 
+# Nom lisible pour le menu : 01_01 → « Cours 1 - Exercice 1 »
+# (les anciens noms td01ex01 s'affichent tels quels)
+_td_pretty() {
+  local b="$1" c e
+  case "$b" in
+    [0-9][0-9]_[0-9][0-9])
+      c="${b%%_*}"; e="${b#*_}"
+      echo "Cours $((10#$c)) - Exercice $((10#$e))"
+      ;;
+    *) echo "$b" ;;
+  esac
+}
+
 # Où suis-je ? Dépôt, branche, modifs en attente, et garde-fou anti repo-dans-repo
 td_check() {
   local top branch n
@@ -120,7 +133,7 @@ _td_known() {
     for d in "$TD_HOME"/*/; do
       [ -d "$d" ] || continue
       b=$(basename "$d")
-      case "$b" in td[0-9]*ex[0-9]*) echo "$b" ;; esac
+      case "$b" in td[0-9]*ex[0-9]*|[0-9][0-9]_[0-9][0-9]) echo "$b" ;; esac
     done
   } | sort -u
 }
@@ -151,7 +164,7 @@ td_go() {
   fi
   if [ -z "$n" ]; then
     echo "Exercices disponibles :"
-    for k in "${known[@]}"; do echo "  $i. $k"; i=$((i+1)); done
+    for k in "${known[@]}"; do echo "  $i. $(_td_pretty "$k")"; i=$((i+1)); done
     echo "Usage : td go <numéro>"
     return 1
   fi
@@ -173,15 +186,15 @@ td_go() {
 # Menu interactif
 td_menu() {
   echo "=== TD Git 201 — workspace : $TD_HOME ==="
-  local dirs=()
-  while IFS= read -r d; do dirs+=("$d"); done < <(_td_list)
+  local dirs=() labels=() d
+  while IFS= read -r d; do dirs+=("$d"); labels+=("$(_td_pretty "$d")"); done < <(_td_list)
   if [ ${#dirs[@]} -eq 0 ]; then
     echo "Aucun exercice pour l'instant."
     echo "Créez le premier avec : td go 1"
     return
   fi
   PS3="${TD_E}[1;33m👉 Tapez un numéro (q = quitter) : ${TD_E}[0m"
-  select c in "${dirs[@]}" "Que dois-je faire ?" "Où suis-je ?"; do
+  select c in "${labels[@]}" "Que dois-je faire ?" "Où suis-je ?"; do
     case "$REPLY" in
       q|Q) echo "Au revoir !"; break ;;
     esac
@@ -189,7 +202,7 @@ td_menu() {
       "Où suis-je ?")        td_check ;;
       "Que dois-je faire ?") td_todo ;;
       "")                    [ "$REPLY" = q ] || [ "$REPLY" = Q ] || echo "Choix invalide." ;;
-      *)                     _td_open "$c"; break ;;
+      *)                     _td_open "${dirs[$((REPLY-1))]}"; break ;;
     esac
   done
 }

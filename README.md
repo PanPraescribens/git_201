@@ -10,7 +10,7 @@ Rien de grave !
 ```
 cours/       → les présentations, pour revoir la leçon
 pratiques/   → un dossier autoportant par TD (énoncé + matériel)
-divers/      → l'environnement de travail, scripts utiles, annales
+divers/      → l'environnement de travail, scripts utiles
 ```
 
 ## Mise en route (une fois pour toutes)
@@ -25,6 +25,8 @@ puis **ouvrez un nouveau terminal**. Vous avez alors :
 
 - `td` — le menu (tapez **un numéro**, ou `q` pour quitter) ;
 - `td go 1` — va dans l'exercice n°1 (le crée et y dépose `A_FAIRE.md`, la liste de ce que vous devez faire) ;
+- les exercices sont numérotés par **cours** : dossier `01_01` = Cours 1, exercice 1
+  (affiché « Cours 1 - Exercice 1 » dans le menu) ;
 - `td todo` — revoir « que dois-je faire ? » ;
 - `td check` — où suis-je ? (dépôt ? branche ? modifs en cours ?)
 
