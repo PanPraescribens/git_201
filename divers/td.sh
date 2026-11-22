@@ -13,6 +13,9 @@ TD_HOME="${TD_HOME:-$HOME/td-git201}"
 # Où l'installateur a posé les outils (listes de tâches, prompt, etc.)
 TD_SHARE="${TD_SHARE:-$HOME/.local/share/td-git201}"
 
+# Échap ANSI, pour les prompts bien visibles
+TD_E=$'\033'
+
 _td_usage() {
   cat << 'USAGE'
 td                 — menu interactif (liste vos exercices)
@@ -85,7 +88,7 @@ td_todo() {
     return
   fi
   echo "De quel exercice voulez-vous les tâches ?"
-  PS3="Votre choix (q = annuler) : "
+  PS3="${TD_E}[1;33m👉 Tapez un numéro (q = annuler) : ${TD_E}[0m"
   select c in "${dirs[@]}" "Annuler"; do
     case "$REPLY" in
       q|Q) return ;;
@@ -176,7 +179,7 @@ td_menu() {
     echo "Créez le premier avec : td go 1"
     return
   fi
-  PS3="Votre choix (q = quitter) : "
+  PS3="${TD_E}[1;33m👉 Tapez un numéro (q = quitter) : ${TD_E}[0m"
   select c in "${dirs[@]}" "Que dois-je faire ?" "Où suis-je ?"; do
     case "$REPLY" in
       q|Q) echo "Au revoir !"; break ;;
