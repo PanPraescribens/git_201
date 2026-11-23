@@ -54,7 +54,7 @@ _td_pretty() {
 # - anti repo-dans-repo (clone du cours)
 # - anti exercice-imbriqué (piège du mkdir en double)
 td_check() {
-  local top branch n rel depth
+  local top branch n rel depth err
   # Étes-vous au bon endroit ? Racine d'un exercice connu = confirmation positive
   case "$PWD" in
     "$TD_HOME"/*)
@@ -88,8 +88,18 @@ td_check() {
         ;;
     esac
   else
-    echo "Pas dans un dépôt git. (Répertoire courant : $PWD)"
-    echo "Pour commencer un exercice : td go 1"
+    # Une erreur fréquente mérite un vrai diagnostic : « dubious ownership »
+    err=$(git rev-parse --show-toplevel 2>&1 >/dev/null)
+    if printf '%s' "$err" | grep -Eiq 'dubious ownership|douteu'; then
+      echo "⚠️  Git refuse ce dépôt : « dubious ownership » (propriétaire différent du vôtre)."
+      echo "   Le dossier appartient à un autre compte (home réseau, session précédente…)."
+      echo "   Correctif — déclarer le dépôt sûr (ou tout le workspace d'un coup) :"
+      echo "     git config --global --add safe.directory \"$PWD\""
+      echo "     git config --global --add safe.directory \"$TD_HOME\"   # tous les exercices"
+    else
+      echo "Pas dans un dépôt git. (Répertoire courant : $PWD)"
+      echo "Pour commencer un exercice : td go 1"
+    fi
   fi
 }
 

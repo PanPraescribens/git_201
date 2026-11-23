@@ -54,6 +54,14 @@ if ! git config --get user.name >/dev/null || ! git config --get user.email >/de
   echo
 fi
 
+# 2ter. Erreur « dubious ownership » : Git refuse un dépôt dont le propriétaire
+# du dossier n'est pas l'utilisateur courant (home réseau, session précédente…).
+# On déclare le workspace TD une fois pour toutes — ça couvre tous les exercices.
+if ! git config --global --get-all safe.directory 2>/dev/null | grep -Fxq "$HOME/td-git201"; then
+  git config --global --add safe.directory "$HOME/td-git201" \
+    && echo "✓ workspace TD déclaré sûr (safe.directory)"
+fi
+
 # 3. Bloc ~/.bashrc (idempotent : on retire l'ancien bloc avant de réécrire)
 [ -f "$BASHRC" ] && cp -f "$BASHRC" "$BASHRC.bak-td"
 if [ -f "$BASHRC" ] && grep -qF "$MARK_START" "$BASHRC"; then
