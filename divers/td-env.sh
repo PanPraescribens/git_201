@@ -69,9 +69,11 @@ fi
 
 # 2ter. Erreur « dubious ownership » : Git refuse un dépôt dont le propriétaire
 # du dossier n'est pas l'utilisateur courant (home réseau, session précédente…).
-# On déclare le workspace TD une fois pour toutes — ça couvre tous les exercices.
-if ! git config --global --get-all safe.directory 2>/dev/null | grep -Fxq "$HOME/td-git201"; then
-  git config --global --add safe.directory "$HOME/td-git201" \
+# L'entrée « <chemin>/* » couvre tous les repos SOUS le workspace — un repo par
+# exercice — une fois pour toutes.
+if ! git config --global --get-all safe.directory 2>/dev/null | grep -Fxq "$TD_HOME_DEF/*"; then
+  git config --global --add safe.directory "$TD_HOME_DEF"
+  git config --global --add safe.directory "$TD_HOME_DEF/*" \
     && echo "✓ workspace TD déclaré sûr (safe.directory)"
 fi
 
