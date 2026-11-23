@@ -5,6 +5,8 @@
 #     cd divers && bash td-env.sh
 #
 # Ce que fait l'installateur :
+#   0. décide où vit le workspace exercices : à côté du clone du cours
+#      (~/git_201/td-git201 plutôt qu'un ~/td-git201 perdu à la racine)
 #   1. copie les outils (td.sh, git-prompt.sh, complétion) dans ~/.local/share/td-git201
 #   2. git config init.defaultBranch main   (plus de warnings "master")
 #   3. ajoute un bloc idempotent dans ~/.bashrc : commande `td` + prompt avec branche
@@ -21,6 +23,17 @@ MARK_START="# >>> td-git201 >>>"
 MARK_END="# <<< td-git201 <<<"
 
 echo "=== Installation de l'environnement TD Git 201 ==="
+
+# 0. Workspace exercices à côté du clone du cours, pas à la racine du home
+TD_HOME_DEF="$(dirname "$SRC")/td-git201"
+if [ "$TD_HOME_DEF" != "$HOME/td-git201" ] && [ -d "$HOME/td-git201" ] \
+   && [ -n "$(ls -A "$HOME/td-git201" 2>/dev/null)" ]; then
+  echo "⚠️  Ancien workspace non vide : $HOME/td-git201"
+  echo "   Le workspace vit désormais à côté du clone du cours : $TD_HOME_DEF"
+  echo "   Déplacez-le pour retrouver vos exercices :"
+  echo "     mv \"$HOME/td-git201\" \"$TD_HOME_DEF\""
+  echo
+fi
 
 # 1. Copie des outils (indépendante du clone : peut être effacé/recloné sans casse)
 mkdir -p "$DEST"
@@ -70,7 +83,7 @@ fi
 cat >> "$BASHRC" << BLOC
 
 $MARK_START
-export TD_HOME="\${TD_HOME:-\$HOME/td-git201}"
+export TD_HOME="\${TD_HOME:-$TD_HOME_DEF}"
 [ -f "$DEST/td.sh" ] && source "$DEST/td.sh"
 [ -f "$DEST/git-prompt.sh" ] && source "$DEST/git-prompt.sh"
 GIT_PS1_SHOWDIRTYSTATE=1
@@ -94,5 +107,6 @@ fi
 
 echo
 echo "✅ Environnement installé dans $DEST"
+echo "   Workspace exercices : $TD_HOME_DEF"
 echo "   Ouvrez un nouveau terminal, ou tapez :  source ~/.bashrc"
 echo "   Ensuite :  td help"

@@ -24,8 +24,8 @@ td todo [numéro]   — « que dois-je faire ? » (numéro = un autre exercice)
 td check           — où suis-je ? (dépôt git ? branche ? modifs en cours ?)
 td help            — cette aide
 
-Les exercices vivent dans $TD_HOME (par défaut ~/td-git201),
-JAMAIS dans le clone du cours : jamais de repo dans le repo.
+Les exercices vivent dans $TD_HOME (à côté du clone du cours,
+défini à l'installation), JAMAIS dans le clone du cours : jamais de repo dans le repo.
 USAGE
 }
 
